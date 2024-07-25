@@ -10,8 +10,8 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.BSC_NODE_URL || "",
-        blockNumber: Number(process.env.BSC_SNAPSHOT_BLOCK)
+        url: process.env.NODE_URL || "",
+        blockNumber: Number(process.env.SNAPSHOT_BLOCK)
       }
     },
   }

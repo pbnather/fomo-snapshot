@@ -5,9 +5,8 @@
   "author": "pbnather <33466053+pbnather@users.noreply.github.com>",
   "license": "MIT",
   "scripts": {
-    "snapshot:morphies": "npx hardhat run scripts/snapshot_morphies.ts",
-    "snapshot:bnb": "npx hardhat run scripts/snapshot_mpx_bnb.ts",
-    "snapshot:ftm": "npx hardhat --config fantom-fork.hardhat.config.ts run scripts/snapshot_mpx_ftm.ts",
+    "snapshot:lp": "npx hardhat run scripts/snapshot_fomo_lp.ts",
+    "snapshot:fomo": "npx hardhat run scripts/snapshot_fomo.ts",
     "snapshot:process": "npx hardhat run scripts/process_snapshots.ts"
   },
   "devDependencies": {
