@@ -3,10 +3,6 @@ import * as fs from 'node:fs/promises';
 import { FOMO_INCENTIVES_CONTROLLER_ADDRESS_V1, FOMO_INCENTIVES_CONTROLLER_ADDRESS_V2, FOMO_INCENTIVES_CONTROLLER_START_BLOCK_V1, FOMO_INCENTIVES_CONTROLLER_START_BLOCK_V2, Staker, StakerAction } from "../utils/constants";
 import { markContracts, saveHolders, saveSnapshotAsJson, snapshotDeposits, snapshotWithdrawals } from "../utils/helpers";
 
-(BigInt.prototype as any).toJSON = function () {
-    return this.toString();
-  };
-
 var balances: { [id: string]: StakerAction[]; } = {}
 
 async function main() {

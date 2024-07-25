@@ -1,9 +1,13 @@
 import { ethers } from "hardhat";
-import { INCREMENT, Staker } from "./constants";
+import { INCREMENT, Staker, StakerPoints } from "./constants";
 import tokenIncentivesControllerAbi from '../abi/TokenIncentivesController.json';
 import { EventLog } from "ethers";
 import * as fs from 'node:fs/promises';
 const cliProgress = require('cli-progress');
+
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+  };
 
 export async function snapshotDeposits(snapshotBlock: number, incentivesAddress: string, startBlock: number, balances: { [id: string]: {
     amount: bigint,
@@ -137,9 +141,34 @@ export async function markContracts(accounts: Staker[]) {
     }
 }
 
-export async function saveSnapshotAsJson(name: string, data: Staker[], final: boolean = false) {
+export async function saveSnapshotAsJson(name: string, data: any, final: boolean = false) {
     let ownersJson = JSON.stringify(data);
     let path = final ? `data/${name}.json` : `data/${name}.json`;
     await fs.writeFile(path, ownersJson);
     console.log(`Snapshot saved as ${path}`);
+}
+
+export async function loadData(snapshotBlock: number): Promise<{ fomo: Staker[], lp: Staker[]}> {
+    var lpStakers: Staker[];
+    var fomoStakers: Staker[];
+    try {
+        let path = `data/lp_token_incentives_${snapshotBlock}.json`;
+        console.log(`Getting FOMO-USDC LP stakers from ${path}...`);
+        let jsonHolders = await fs.readFile(path, 'utf8');
+        lpStakers = JSON.parse(jsonHolders) as Staker[];
+    } catch (err) {
+        console.log(err)
+        throw err;
+    }
+
+    try {
+        let path = `data/fomo_token_incentives_${snapshotBlock}.json`;
+        console.log(`Getting FOMO stakers from ${path}...`);
+        let jsonHolders = await fs.readFile(path, 'utf8');
+        fomoStakers = JSON.parse(jsonHolders) as Staker[];
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+    return { fomo: fomoStakers, lp: lpStakers };
 }

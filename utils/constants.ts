@@ -10,6 +10,11 @@ export const FOMO_INCENTIVES_CONTROLLER_START_BLOCK_V2 = 16260984
 
 export const INCREMENT = 1000;
 
+export type StakerPoints = {
+    address: string;
+    points: bigint;
+}
+
 export type StakerAction = {
     amount: bigint;
     block: bigint;
