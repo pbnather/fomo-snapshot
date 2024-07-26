@@ -8,11 +8,11 @@ var balances: { [id: string]: StakerAction[]; } = {}
 async function main() {
     let snapshotBlock = await ethers.provider.getBlockNumber()
     console.log("Snapshot block:", snapshotBlock);
-    let dataName = `lp_token_incentives_${snapshotBlock}`;
+    let dataName = `lp_token_incentives`;
 
     try {
-        console.log(`Getting FOMO stakers from data/${dataName}.json...`);
-        let jsonHolders = await fs.readFile(`data/${dataName}.json`, 'utf8');
+        console.log(`Getting FOMO stakers from data/${snapshotBlock}/${dataName}.json...`);
+        let jsonHolders = await fs.readFile(`data/${snapshotBlock}/${dataName}.json`, 'utf8');
         holders = JSON.parse(jsonHolders) as Staker[];
     } catch (err) {
         console.log("Getting FOMO-USDC LP stakers in V1");
@@ -23,7 +23,7 @@ async function main() {
         await snapshotWithdrawals(snapshotBlock, TOKEN_INCENTIVES_CONTROLLER_ADDRESS_V2, TOKEN_INCENTIVES_CONTROLLER_START_BLOCK_V2, balances);
         var holders: Staker[] = await saveHolders(balances);
         await markContracts(holders);
-        await saveSnapshotAsJson(dataName, holders);
+        await saveSnapshotAsJson(snapshotBlock, dataName, holders);
         console.log("SUCCESS")
     }
 }

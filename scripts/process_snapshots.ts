@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import { ethers } from 'hardhat';
 import { Staker, StakerPoints } from '../utils/constants';
 import { loadData, saveSnapshotAsJson } from '../utils/helpers';
@@ -15,22 +14,14 @@ function processStakers(snpashotBlock: bigint, lp: Staker[]): StakerPoints[] {
         let totalPoints = BigInt(0);
         let previousBlock = BigInt(staker.actions[0].block);
         let currentStaked = BigInt(staker.actions[0].amount);
-        // console.log(0)
-        // console.log(staker.actions[0])
-
-        // console.log(staker.address)
         for (let i = 1; i < staker.actions.length; i++) {
-            // console.log(i)
-            // console.log(staker.actions[i])
             const action = staker.actions[i];
             const points = currentStaked * (BigInt(action.block) - previousBlock);
-            // console.log(points)
             totalPoints = totalPoints + BigInt(points);
             currentStaked += BigInt(action.amount);
-            // console.log(currentStaked)
             previousBlock = BigInt(action.block);
         }
-
+        // add points since last action to snapshot block
         const points = currentStaked * (snpashotBlock - previousBlock);
         totalPoints += points;
         sumOfPoints += totalPoints;
@@ -42,24 +33,13 @@ function processStakers(snpashotBlock: bigint, lp: Staker[]): StakerPoints[] {
     return stakerPoints;
 }
 
-
-async function saveArrays(addressesData: string[], amountsData: string[]) {
-    let addressJson = JSON.stringify(addressesData);
-    let amountsJson = JSON.stringify(amountsData);
-
-    let adressesPath = `data/mpx_final_snapshot_addresses.json`;
-    await fs.writeFile(adressesPath, addressJson);
-
-    let amountsPath = `data/mpx_final_snapshot_amounts.json`;
-    await fs.writeFile(amountsPath, amountsJson);
-    console.log(`Snapshots saved in arrays!`);
-}
-
-
 async function main() {
-    let multiplier = process.env.LP_MULTIPLIER;
+    let airdropAmount = BigInt(process.env.AIRDROP_AMOUNT!);
+    let multiplier = BigInt(process.env.LP_MULTIPLIER!);
     let snapshotBlock = await ethers.provider.getBlockNumber();
     console.log("Snapshot block:", snapshotBlock);
+    console.log("LP Mulitplier:", multiplier);
+    console.log("Airdrop amount:", airdropAmount);
 
     let snapshotData = await loadData(snapshotBlock)
 
@@ -70,12 +50,12 @@ async function main() {
     console.log(`Merging results with LP multiplier of ${multiplier}`)
     
     let lpPointsMultiplied = lpPoints.map((staker) => {
-        return { address: staker.address, points: staker.points * BigInt(multiplier!) }
+        return { address: staker.address, points: staker.points * multiplier }
     });
 
-    await saveSnapshotAsJson(`lp_points_${snapshotBlock}`, lpPoints.sort((a, b) => Number(b.points - a.points)));
-    await saveSnapshotAsJson(`lp_points_multiplied_${snapshotBlock}`, lpPoints.sort((a, b) => Number(b.points - a.points)));
-    await saveSnapshotAsJson(`fomo_points_${snapshotBlock}`, fomoPoints.sort((a, b) => Number(b.points - a.points)));
+    await saveSnapshotAsJson(snapshotBlock, `lp_points`, lpPoints.sort((a, b) => Number(b.points - a.points)), multiplier.toString());
+    await saveSnapshotAsJson(snapshotBlock, `lp_points_mul`, lpPointsMultiplied.sort((a, b) => Number(b.points - a.points)), multiplier.toString());
+    await saveSnapshotAsJson(snapshotBlock, `fomo_points`, fomoPoints.sort((a, b) => Number(b.points - a.points)), multiplier.toString());
 
     // Merge lpPointsMultiplied and fomoPoints into one array
     const mergedPoints = [...lpPointsMultiplied, ...fomoPoints];
@@ -96,9 +76,28 @@ async function main() {
     // Create an array from the mergedPointsMap
     const mergedPointsArray = Object.entries(mergedPointsMap).map(([address, points]) => ({ address, points }));
 
-    await saveSnapshotAsJson(`final_mul_${multiplier}_${snapshotBlock}`, mergedPointsArray.sort((a, b) => Number(b.points - a.points)));
+    mergedPointsArray.sort((a, b) => Number(b.points - a.points))
+    
+    await saveSnapshotAsJson(snapshotBlock, `points_all`, mergedPointsArray, multiplier.toString());
+    
+    let total = mergedPointsArray.reduce((acc, curr) => { return {address: 'Total', points: acc.points + curr.points }})
+    console.log('Total', total.points)
 
-    console.log(mergedPointsArray.reduce((acc, curr) => { return {address: 'Total', points: acc.points + curr.points }  }), { address: 'Total', points: BigInt(0) });
+    let percentPointsArray = mergedPointsArray.map((point) => {
+        let percent = (point.points * (10n ** 18n)) / total.points
+        return { address: point.address, points: percent }
+    })
+
+    await saveSnapshotAsJson(snapshotBlock, `points_percent`, percentPointsArray, multiplier.toString());
+    
+    let airdropArray = percentPointsArray.map((point) => {
+        let airdrop = (point.points * airdropAmount) / (10n ** 18n)
+        return { address: point.address, amount: airdrop }
+    })
+    
+    airdropArray.filter((point) => point.amount > 0n)
+    
+    await saveSnapshotAsJson(snapshotBlock, `final`, airdropArray, multiplier.toString());
     console.log("SUCCESS")
 }
 

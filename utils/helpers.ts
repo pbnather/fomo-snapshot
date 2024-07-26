@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { INCREMENT, Staker, StakerPoints } from "./constants";
+import { INCREMENT, Staker } from "./constants";
 import tokenIncentivesControllerAbi from '../abi/TokenIncentivesController.json';
 import { EventLog } from "ethers";
 import * as fs from 'node:fs/promises';
@@ -91,8 +91,6 @@ export async function saveHolders(balances: { [id: string]: {
     amount: bigint,
     block: bigint
 }[]; }): Promise<Staker[]> {
-    console.log("Saving JSON...");
-
     var mpxHolders: Staker[] = [];
     for (var key in balances) {
         balances[key].sort((a: { amount: bigint, block: bigint }, b: { amount: bigint, block: bigint }) => {
@@ -141,10 +139,18 @@ export async function markContracts(accounts: Staker[]) {
     }
 }
 
-export async function saveSnapshotAsJson(name: string, data: any, final: boolean = false) {
+export async function saveSnapshotAsJson(snapshotBlock: number, name: string, data: any, multiplier?: string) {
     let ownersJson = JSON.stringify(data);
-    let path = final ? `data/${name}.json` : `data/${name}.json`;
-    await fs.writeFile(path, ownersJson);
+    try {
+    if (multiplier) {
+        await fs.mkdir(`data/${snapshotBlock}/${multiplier}`, { recursive: true });
+    } else {
+        await fs.mkdir(`data/${snapshotBlock}`, { recursive: true });
+    }} catch (err) {
+        console.log(err);
+    }
+    let path = multiplier ? `data/${snapshotBlock}/${multiplier}/${name}.json` : `data/${snapshotBlock}/${name}.json`;
+    await fs.writeFile(path, ownersJson, { flag: 'w' });
     console.log(`Snapshot saved as ${path}`);
 }
 
@@ -152,7 +158,7 @@ export async function loadData(snapshotBlock: number): Promise<{ fomo: Staker[],
     var lpStakers: Staker[];
     var fomoStakers: Staker[];
     try {
-        let path = `data/lp_token_incentives_${snapshotBlock}.json`;
+        let path = `data/${snapshotBlock}/lp_token_incentives.json`;
         console.log(`Getting FOMO-USDC LP stakers from ${path}...`);
         let jsonHolders = await fs.readFile(path, 'utf8');
         lpStakers = JSON.parse(jsonHolders) as Staker[];
@@ -162,7 +168,7 @@ export async function loadData(snapshotBlock: number): Promise<{ fomo: Staker[],
     }
 
     try {
-        let path = `data/fomo_token_incentives_${snapshotBlock}.json`;
+        let path = `data/${snapshotBlock}/fomo_token_incentives.json`;
         console.log(`Getting FOMO stakers from ${path}...`);
         let jsonHolders = await fs.readFile(path, 'utf8');
         fomoStakers = JSON.parse(jsonHolders) as Staker[];
