@@ -50,7 +50,7 @@ async function main() {
     console.log(`Merging results with LP multiplier of ${multiplier}`)
     
     let lpPointsMultiplied = lpPoints.map((staker) => {
-        return { address: staker.address, points: staker.points * multiplier * (10n ** 18n) }
+        return { address: staker.address, points: staker.points * multiplier }
     });
 
     await saveSnapshotAsJson(snapshotBlock, `lp_points`, lpPoints.sort((a, b) => Number(b.points - a.points)), multiplier.toString());
